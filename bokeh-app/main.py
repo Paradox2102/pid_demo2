@@ -61,7 +61,7 @@ class PID:
 
         d_output = config.d * d_err
         
-        if abs(err) < config.izone and dt is not None:
+        if abs(err) < config.izone and dt is not None and config.i > 0:
             self.err_acc += err * dt
         else:
             self.err_acc = 0
@@ -227,14 +227,20 @@ def bkapp(doc):
     p1.line(x='ts', y='setpoint', color="firebrick", line_width=2, source=source, legend_label="setpoint")
     p1.line(x='ts', y='position', color="navy", line_width=2, source=source, legend_label="position")
     p1.legend.location = "left"
+    p1.toolbar.logo = None
+    p1.toolbar_location = None   
 
     p2 = figure(sizing_mode='stretch_width', height=200, title="Velocity")
     p2.renderers.append(Span(location=0, line_color='black', line_width=1))
     p2.line(x='ts', y='velocity', color="green", line_width=2, source=source)
+    p2.toolbar.logo = None
+    p2.toolbar_location = None   
 
     p6 = figure(sizing_mode='stretch_width', height=200, title="Acceleration")
     p6.renderers.append(Span(location=0, line_color='black', line_width=1))
     p6.line(x='ts', y='acceleration', color="orange", line_width=2, source=source)
+    p6.toolbar.logo = None
+    p6.toolbar_location = None   
 
     p4 = figure(sizing_mode='stretch_width', height=200, title="Voltage")
     p4.renderers.append(Span(location=0, line_color='black', line_width=1))
@@ -244,6 +250,8 @@ def bkapp(doc):
     p4.line(x='ts', y='voltage_d', color="green", line_width=2, source=source, legend_label="d")
     p4.line(x='ts', y='voltage_f', color="cyan", line_width=2, source=source, legend_label="f")
     p4.legend.location = "left"
+    p4.toolbar.logo = None
+    p4.toolbar_location = None   
 
     p5 = figure(sizing_mode='stretch_width', height=200, title="PIDF")
     p5.renderers.append(Span(location=0, line_color='black', line_width=1))
@@ -252,11 +260,15 @@ def bkapp(doc):
     p5.line(x='ts', y='d', color="turquoise", line_width=2, source=source, legend_label="d")
     p5.line(x='ts', y='f', color="limegreen", line_width=2, source=source, legend_label="f")
     p5.legend.location = "left"
+    p5.toolbar.logo = None
+    p5.toolbar_location = None   
 
     p3 = figure(width=350, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1))
     p3.segment(0, 0, 0, -1, color="black", line_width=1)
     p3.segment(0, 0, 'setpoint_x', 'setpoint_y', color="firebrick", line_width=2, source=animation_source)
     p3.segment(0, 0, 'position_x', 'position_y', color="navy", line_width=4, source=animation_source)
+    p3.toolbar.logo = None
+    p3.toolbar_location = None   
 
     p_widget = Slider(start=0., end=0.1, value=0., step=0.001, title="p", sizing_mode="stretch_width", format='0.000')
     f_widget = Slider(start=0., end=1, value=0., step=0.005, title="f", sizing_mode="stretch_width", format='0.000')
@@ -329,9 +341,14 @@ def bkapp(doc):
             data = get_empty_data()
         
 
-    doc.add_root(column(row(column(f_widget, p_widget, i_widget, izone_widget, d_widget, setpoint_widget, ratio_widget, sizing_mode="stretch_width"), 
-        column(p3, reset_button, reflect_button), 
-        sizing_mode="stretch_width"), p1, p2, p6, p4, p5, sizing_mode="stretch_both"))
+    doc.add_root(
+            column(
+                row(
+                    column(f_widget, p_widget, i_widget, izone_widget, d_widget, setpoint_widget, ratio_widget, sizing_mode="stretch_width"), 
+                    column(p3, reset_button, reflect_button, sizing_mode="fixed"), 
+                    sizing_mode="stretch_width"
+                ), 
+                p1, p2, p6, p4, p5, sizing_mode="stretch_both"))
 
     # Add a periodic callback to be run every 500 milliseconds
     doc.add_periodic_callback(update_data, 1000.0 / update_frequency)
