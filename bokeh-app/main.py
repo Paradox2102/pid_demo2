@@ -1,6 +1,5 @@
 import math
 
-import pandas as pd
 from time import time, sleep
 from typing import NamedTuple
 import threading
