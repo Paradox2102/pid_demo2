@@ -50,11 +50,11 @@ class PID:
         self.error_bound = (maximum_input - minimum_input) / 2.0
         
     def calculate(self, measurement, config:Config, dt):
-        err = self._calculate_error(measurement, config.setpoint)
+        err = self._calculate_difference(config.setpoint - measurement)
         p_output = config.p * err
         if dt is not None:
             assert self.last_err is not None, f"dt={dt}"
-            d_err = (err - self.last_err) / dt
+            d_err = self._calculate_difference(err - self.last_err) / dt
         else:
             d_err = 0
         self.last_err = err
@@ -70,11 +70,11 @@ class PID:
         i_output = config.i * self.err_acc
         return dict(p=p_output, d=d_output, i=i_output)
     
-    def _calculate_error(self, measurement, setpoint):
+    def _calculate_difference(self, value):
         if self.continuous:
-            return input_modulus(setpoint - measurement, -self.error_bound, +self.error_bound)
+            return input_modulus(value, -self.error_bound, +self.error_bound)
         else:
-            return setpoint - measurement
+            return value
 
 # Following three methods are cribbed from:
 # https://first.wpi.edu/wpilib/allwpilib/docs/release/java/src-html/edu/wpi/first/math/MathUtil.html
@@ -137,12 +137,10 @@ class Model:
 
 
 class ModelArm(Model):
-    def __init__(self, mass, length, motor, initial_position=0, initial_velocity=0):
+    def __init__(self, mass, length, motor):
         self.mass = mass
         self.length = length
         self.motor = motor
-        self.position = initial_position
-        self.velocity = initial_velocity
         self.inertia = mass * length ** 2 / 3.0
         
     def calculate(self, position, velocity, dt, output):
@@ -162,7 +160,7 @@ class Process:
         motor = Motor(inertia=0.5, torque=12.0)
         motor = Gearbox(motor, 20)
         self.reset(config)
-        self.model = ModelArm(mass=0.1, length=1.0, motor=motor, initial_position=self.position, initial_velocity=self.velocity) 
+        self.model = ModelArm(mass=0.1, length=1.0, motor=motor) 
         self.ff = ff_arm
         self.dilation = 1
         self.output = 0
@@ -174,7 +172,8 @@ class Process:
         (self.position, self.velocity, acceleration) = self.model.calculate(position=self.position, velocity=self.velocity, dt=dt, output=self.output)
         output = self.pid.calculate(measurement=self.position, config=config, dt=dt)
         output['f'] = self.ff(config.f, config.setpoint)
-        self.output = output['total'] = sum(output.values())        
+        output['total'] = sum(output.values())
+        self.output = clamp(output['total'], -1, +1)
         self.model.motor.ratio = config.ratio
         return ((now-self.start) * self.dilation, self.position, self.velocity, acceleration, output)
 
