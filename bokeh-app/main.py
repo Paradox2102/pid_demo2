@@ -60,6 +60,8 @@ class PID:
         self.last_err = err
 
         d_output = config.d * d_err
+
+        #print(dict(dt=dt, d_err=d_err, err=err, err_acc=self.err_acc))
         
         if abs(err) < config.izone and dt is not None and config.i > 0:
             self.err_acc += err * dt
@@ -163,16 +165,17 @@ class Process:
         self.model = ModelArm(mass=0.1, length=1.0, motor=motor, initial_position=self.position, initial_velocity=self.velocity) 
         self.ff = ff_arm
         self.dilation = 1
+        self.output = 0
 
     def update(self, config):
         now = time()
         dt = (now - self.last_time) * self.dilation
         self.last_time = now
+        (self.position, self.velocity, acceleration) = self.model.calculate(position=self.position, velocity=self.velocity, dt=dt, output=self.output)
         output = self.pid.calculate(measurement=self.position, config=config, dt=dt)
         output['f'] = self.ff(config.f, config.setpoint)
-        output['total'] = sum(output.values())
+        self.output = output['total'] = sum(output.values())        
         self.model.motor.ratio = config.ratio
-        (self.position, self.velocity, acceleration) = self.model.calculate(position=self.position, velocity=self.velocity, dt=dt, output=output['total'])
         return ((now-self.start) * self.dilation, self.position, self.velocity, acceleration, output)
 
     def reset(self, config):
