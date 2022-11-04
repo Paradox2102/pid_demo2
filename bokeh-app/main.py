@@ -337,7 +337,10 @@ def bkapp(doc):
     # p7.toolbar.logo = None
     # p7.toolbar_location = None   
 
-    p3 = figure(width=300, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1))
+    p3 = figure(width=300, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1), tooltips="""
+        The blue arrow is a robot arm, hinged at the centre of the screen.
+        The red arrow indicates the "setpoint", the direction we want the arm to point.
+    """)
     p3.axis.visible = False
     p3.grid.visible = False
     p3.circle(x=[0], y=[0], radius=1, color='lightgrey')
@@ -410,7 +413,7 @@ def bkapp(doc):
                     column(p3, reset_button, reflect_button, sizing_mode="fixed"), 
                     sizing_mode="stretch_width"
                 ), 
-                p1, p2, p6, p4, p5, p7, sizing_mode="stretch_both"))
+                p1, p2, p6, p4, sizing_mode="stretch_both"))
 
     # Add a periodic callback to be run every 500 milliseconds
     doc.add_periodic_callback(update_data, 1000.0 / update_frequency)
