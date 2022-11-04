@@ -7,13 +7,14 @@ import threading
 from collections import defaultdict
 
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, Button, Span
+from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from bokeh.io import show, output_notebook
 from bokeh.plotting import figure, curdoc
 from bokeh.driving import linear
 from bokeh.models.ranges import DataRange1d, Range1d
+from bokeh.core.properties import value
 
 import cProfile
 import atexit
@@ -66,7 +67,10 @@ class PID:
         else:
             self.err_acc = 0
         i_output = self.i * self.err_acc
-        return dict(p=p_output, d=d_output, i=i_output)
+        output = p_output + i_output + d_output # unclamped
+        result = dict(output=output, p_output=p_output, d_output=d_output, i_output=i_output, err=err, d_err=d_err, err_acc=self.err_acc)
+        assert set(result.keys()) == set(self.columns)
+        return result
     
     def _calculate_difference(self, value):
         if self.continuous:
@@ -96,7 +100,7 @@ class PID:
 
     @property
     def columns(self):
-        return ['p', 'i', 'd']
+        return ['output', 'p_output', 'i_output', 'd_output', 'd_err', 'err', 'err_acc']
 
 
 # Following three methods are cribbed from:
@@ -199,18 +203,21 @@ class Process:
         dt = now - self.last_time
         self.last_time = now
         (self.position, self.velocity, acceleration) = self.model.calculate(position=self.position, velocity=self.velocity, dt=dt, output=self.output)
-        output = self.pid.calculate(measurement=self.position, dt=dt)        
-        output['f'] = self.ff(self.f, self.pid.setpoint)
-        result = {
-            'voltage_' + key: clamp(value, -1, 1) * self.voltage
-            for key, value in output.items()
-        }
-        self.output = clamp(sum(output.values()), -1, 1)
-        result['voltage'] =  self.output * self.voltage
+        result = self.pid.calculate(measurement=self.position, dt=dt)        
+        # voltage and self.output are clamped, other outputs are not
+        result['f_output'] = self.ff(self.f, self.pid.setpoint)        
+        result['output'] = result['output'] + result['f_output']
+        self.output = clamp(result['output'], -1, 1)
+        result['voltage'] = self.output * self.voltage
+        result['p_voltage'] = clamp(result['p_output'], -1, 1) * self.voltage
+        result['i_voltage'] = clamp(result['i_output'], -1, 1) * self.voltage
+        result['d_voltage'] = clamp(result['d_output'], -1, 1) * self.voltage
+        result['f_voltage'] = clamp(result['f_output'], -1, 1) * self.voltage
         result['position'] = self.position
         result['velocity'] = self.velocity
         result['acceleration'] = acceleration
         result['ts'] = now - self.start
+        assert set(result.keys()) == set(self.columns), (sorted(result.keys()), sorted(self.columns))
         return result
 
     def reset(self):
@@ -224,9 +231,9 @@ class Process:
 
     @property
     def columns(self):
-        return ['voltage', 'position', 'velocity', 'acceleration', 'ts', 'voltage_f'] + [
-            'voltage_' + key for key in self.pid.columns
-        ]
+        return ['voltage', 'position', 'velocity', 'acceleration', 'ts', 
+            'f_voltage', 'f_output', 'p_voltage', 'i_voltage', 
+            'd_voltage'] + self.pid.columns
 
 
 def get_empty_data(process, controls):
@@ -305,28 +312,51 @@ def bkapp(doc):
     p4 = figure(sizing_mode='stretch_width', height=200, title="Voltage")
     p4.renderers.append(Span(location=0, line_color='black', line_width=1))
     p4.line(x='ts', y='voltage', color="red", line_width=4, source=source, legend_label="total")
-    p4.line(x='ts', y='voltage_p', color="magenta", line_width=2, source=source, legend_label="p")
-    p4.line(x='ts', y='voltage_i', color="orange", line_width=2, source=source, legend_label="i")
-    p4.line(x='ts', y='voltage_d', color="green", line_width=2, source=source, legend_label="d")
-    p4.line(x='ts', y='voltage_f', color="cyan", line_width=2, source=source, legend_label="f")
+    p4.line(x='ts', y='p_voltage_p', color="magenta", line_width=2, source=source, legend_label="p")
+    p4.line(x='ts', y='i_voltage', color="orange", line_width=2, source=source, legend_label="i")
+    p4.line(x='ts', y='d_voltage', color="green", line_width=2, source=source, legend_label="d")
+    p4.line(x='ts', y='f_voltage', color="cyan", line_width=2, source=source, legend_label="f")
     p4.legend.location = "left"
     p4.toolbar.logo = None
     p4.toolbar_location = None   
 
-    p5 = figure(sizing_mode='stretch_width', height=200, title="PIDF")
-    p5.renderers.append(Span(location=0, line_color='black', line_width=1))
-    p5.line(x='ts', y='p', color="magenta", line_width=2, source=source, legend_label="p")
-    p5.line(x='ts', y='i', color="yellow", line_width=2, source=source, legend_label="i")
-    p5.line(x='ts', y='d', color="turquoise", line_width=2, source=source, legend_label="d")
-    p5.line(x='ts', y='f', color="limegreen", line_width=2, source=source, legend_label="f")
-    p5.legend.location = "left"
-    p5.toolbar.logo = None
-    p5.toolbar_location = None   
+    # p5 = figure(sizing_mode='stretch_width', height=200, title="PIDF")
+    # p5.renderers.append(Span(location=0, line_color='black', line_width=1))
+    # p5.line(x='ts', y='p', color="magenta", line_width=2, source=source, legend_label="p")
+    # p5.line(x='ts', y='i', color="yellow", line_width=2, source=source, legend_label="i")
+    # p5.line(x='ts', y='d', color="turquoise", line_width=2, source=source, legend_label="d")
+    # p5.line(x='ts', y='f', color="limegreen", line_width=2, source=source, legend_label="f")
+    # p5.legend.location = "left"
+    # p5.toolbar.logo = None
+    # p5.toolbar_location = None   
 
-    p3 = figure(width=350, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1))
-    p3.segment(0, 0, 0, -1, color="black", line_width=1)
-    p3.segment(0, 0, 'setpoint_x', 'setpoint_y', color="firebrick", line_width=2, source=animation_source)
-    p3.segment(0, 0, 'position_x', 'position_y', color="navy", line_width=4, source=animation_source)
+    # p7 = figure(sizing_mode='stretch_width', height=200, title="ERR_ACC")
+    # p7.renderers.append(Span(location=0, line_color='black', line_width=1))
+    # p7.line(x='ts', y='err_acc', color="magenta", line_width=2, source=source, legend_label="err_acc")
+    # p7.legend.location = "left"
+    # p7.toolbar.logo = None
+    # p7.toolbar_location = None   
+
+    p3 = figure(width=300, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1))
+    p3.axis.visible = False
+    p3.grid.visible = False
+    p3.circle(x=[0], y=[0], radius=1, color='lightgrey')
+    for angle in range(-180, 180, 30):        
+        angle_rad = angle * math.pi / 180
+        p3.segment(0, 0, math.cos(angle_rad), math.sin(angle_rad), color="grey", 
+            line_width=2 if angle % 90 == 0 else 0.5)
+        p3.text(x=math.cos(angle_rad) * 0.9, y=math.sin(angle_rad) * 0.9,
+            text = value(str(angle) + "º"),
+            text_align="center",
+            text_baseline="center",
+            #text_font_size=7,
+            angle=angle_rad - math.pi/2,
+            text_color='grey',
+        )
+    #p3.segment(0, 0, 'setpoint_x', 'setpoint_y', color="firebrick", line_width=2, source=animation_source)
+    #p3.segment(0, 0, 'position_x', 'position_y', color="navy", line_width=4, source=animation_source)
+    p3.add_layout(Arrow(end=NormalHead(fill_color="firebrick", size=10), line_color="firebrick", x_start=0, y_start=0, x_end='setpoint_x', y_end='setpoint_y', line_width=2, source=animation_source))
+    p3.add_layout(Arrow(end=NormalHead(fill_color="navy", size=20), line_color="navy", x_start=0, y_start=0, x_end='position_x', y_end='position_y', line_width=4, source=animation_source))
     p3.toolbar.logo = None
     p3.toolbar_location = None   
 
@@ -380,7 +410,7 @@ def bkapp(doc):
                     column(p3, reset_button, reflect_button, sizing_mode="fixed"), 
                     sizing_mode="stretch_width"
                 ), 
-                p1, p2, p6, p4, p5, sizing_mode="stretch_both"))
+                p1, p2, p6, p4, p5, p7, sizing_mode="stretch_both"))
 
     # Add a periodic callback to be run every 500 milliseconds
     doc.add_periodic_callback(update_data, 1000.0 / update_frequency)
