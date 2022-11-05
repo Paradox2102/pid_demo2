@@ -7,7 +7,7 @@ import threading
 from collections import defaultdict
 
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead
+from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from bokeh.io import show, output_notebook
@@ -242,6 +242,16 @@ def get_empty_data(process, controls):
 
 data = None
 
+control_help = dict(
+    p="The further away you are, the harder you push",
+    i="If it's taking a long time to get there, give it a nudge",
+    d="If you're getting there too quickly, slow down",
+    f="Feedforward",
+    izone="Only apply the 'i' term if we're this close",
+    setpoint="The target, where we're trying to get to",
+    ratio="The number of times the arm rotates when the motor rotates once",
+)
+
 def make_controls():
     return dict(
         p=Slider(start=0., end=0.1, value=0., step=0.001, title="p", sizing_mode="stretch_width", format='0.000'),
@@ -252,7 +262,6 @@ def make_controls():
         setpoint=Slider(start=-180., end=180, value=0., title="setpoint", sizing_mode="stretch_width"),
         ratio=Slider(start=1, end=100, value=10, title="gear ratio", sizing_mode="stretch_width"),
     )
-
 
 def connect_controls(process, controls):
     controls['p'].on_change("value", lambda attr, old, new: process.pid.set_p(new))
@@ -404,7 +413,9 @@ def bkapp(doc):
             update_animation(data['setpoint'][-1], data['position'][-1])
             data = get_empty_data(process, controls)
         
-    controls_column = column(*(controls[x] for x in ['f', 'p', 'i', 'izone', 'd', 'setpoint', 'ratio']), sizing_mode="stretch_width")
+    controls_column = column(*(row(
+        controls[x], HelpButton(tooltip=Tooltip(content=control_help[x], position='left')), sizing_mode="stretch_width")
+        for x in ['f', 'p', 'i', 'izone', 'd', 'setpoint', 'ratio']), sizing_mode="stretch_width")
 
     doc.add_root(
             column(
