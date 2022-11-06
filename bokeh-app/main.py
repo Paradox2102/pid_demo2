@@ -7,7 +7,7 @@ import threading
 from collections import defaultdict
 
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton
+from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from bokeh.io import show, output_notebook
@@ -346,10 +346,9 @@ def bkapp(doc):
     # p7.toolbar.logo = None
     # p7.toolbar_location = None   
 
-    p3 = figure(width=300, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1), tooltips="""
-        The blue arrow is a robot arm, hinged at the centre of the screen.
-        The red arrow indicates the "setpoint", the direction we want the arm to point.
-    """)
+    p3 = figure(width=300, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1), 
+        tooltips=[("setpoint", "The direction we want the arm to point"),
+            ("position", "The robot's arm")])
     p3.axis.visible = False
     p3.grid.visible = False
     p3.circle(x=[0], y=[0], radius=1, color='lightgrey')
@@ -367,8 +366,14 @@ def bkapp(doc):
         )
     #p3.segment(0, 0, 'setpoint_x', 'setpoint_y', color="firebrick", line_width=2, source=animation_source)
     #p3.segment(0, 0, 'position_x', 'position_y', color="navy", line_width=4, source=animation_source)
-    p3.add_layout(Arrow(end=NormalHead(fill_color="firebrick", size=10), line_color="firebrick", x_start=0, y_start=0, x_end='setpoint_x', y_end='setpoint_y', line_width=2, source=animation_source))
-    p3.add_layout(Arrow(end=NormalHead(fill_color="navy", size=20), line_color="navy", x_start=0, y_start=0, x_end='position_x', y_end='position_y', line_width=4, source=animation_source))
+    p3.add_layout(Arrow(end=NormalHead(fill_color="firebrick", size=10), 
+        line_color="firebrick", x_start=0, y_start=0, x_end='setpoint_x', 
+        y_end='setpoint_y', line_width=2, source=animation_source, 
+        name="setpoint"))
+    p3.add_layout(Arrow(end=NormalHead(fill_color="navy", size=20), 
+        line_color="navy", x_start=0, y_start=0, x_end='position_x', 
+        y_end='position_y', line_width=4, source=animation_source, 
+        name="position"))
     p3.toolbar.logo = None
     p3.toolbar_location = None   
 
