@@ -5,9 +5,10 @@ from time import time, sleep
 from typing import NamedTuple
 import threading
 from collections import defaultdict
+import itertools
 
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool
+from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from bokeh.io import show, output_notebook
@@ -15,9 +16,10 @@ from bokeh.plotting import figure, curdoc
 from bokeh.driving import linear
 from bokeh.models.ranges import DataRange1d, Range1d
 from bokeh.core.properties import value
+from bokeh.palettes import Category10_10 as palette
 
 from process import Process
-from math_util import input_modulus
+from math_util import input_modulus, radians_to_degrees, degrees_to_radians
 
 
 
@@ -34,7 +36,7 @@ control_help = dict(
     f="Feedforward",
     izone="Only apply the 'i' term if we're this close",
     setpoint="The target, where we're trying to get to",
-    ratio="The number of times the arm rotates when the motor rotates once",
+    ratio="The number of times the motors rotates when the arm rotates once",
 )
 
 def make_controls():
@@ -54,8 +56,71 @@ def connect_controls(process, controls):
     controls['d'].on_change("value", lambda attr, old, new: process.pid.set_d(new))
     controls['f'].on_change("value", lambda attr, old, new: process.set_f(new))
     controls['izone'].on_change("value", lambda attr, old, new: process.pid.set_izone(new))
-    controls['setpoint'].on_change("value", lambda attr, old, new: process.pid.set_setpoint(new))
+    controls['setpoint'].on_change("value", lambda attr, old, new: degrees_to_radians(process.pid.set_setpoint(new)))
     controls['ratio'].on_change("value", lambda attr, old, new: process.model.motor.set_ratio(new))
+
+colors = iter(palette)
+
+def make_line_chart(title, source, lines, spans=[0]):
+    lines = [ dict(y=line) if type(line) == str else line for line in lines ]
+    y_ranges = set(line['y_range_name'] for line in lines if 'y_range_name' in line)
+    p = figure(sizing_mode='stretch_width', height=200, title=title)
+    default = dict(x='ts', line_width=2, source=source)
+    for line in lines:
+        data = {**default, **line}
+        if 'color' not in data:
+            data['color'] = next(colors)
+        p.line(**data)
+    p.renderers.extend([
+        Span(location=y, line_color='black', line_width=1)
+        for y in spans])
+    if len(lines) > 1:
+        p.legend.location = "left"
+    p.extra_y_ranges={ 
+        y_range: DataRange1d(renderers=[
+            renderer for line, renderer in zip(lines, p.renderers) 
+            if line.get('y_range_name') == y_range], name=y_range) 
+        for y_range in y_ranges 
+    }
+    p.y_range = DataRange1d(renderers=[
+        renderer for line, renderer in zip(lines, p.renderers) 
+        if 'y_range_name' not in line
+    ])
+    p.toolbar.logo = None
+    p.toolbar_location = None   
+    for y_range in y_ranges:
+        p.add_layout(LinearAxis(y_range_name=y_range, axis_label=y_range), "right")
+    return p
+
+
+def make_animation_chart(source):
+    p = figure(width=300, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1))
+    p.axis.visible = False
+    p.grid.visible = False
+    p.circle(x=[0], y=[0], radius=1, color='lightgrey')
+    for angle in range(-180, 180, 30):        
+        angle_rad = angle * math.pi / 180
+        p.segment(0, 0, math.cos(angle_rad), math.sin(angle_rad), color="grey", 
+            line_width=2 if angle % 90 == 0 else 0.5)
+        p.text(x=math.cos(angle_rad) * 0.9, y=math.sin(angle_rad) * 0.9,
+            text = value(str(angle) + "º"),
+            text_align="center",
+            text_baseline="center",
+            #text_font_size=7,
+            angle=angle_rad - math.pi/2,
+            text_color='grey',
+        )
+    p.add_layout(Arrow(end=NormalHead(fill_color="firebrick", size=10), 
+        line_color="firebrick", x_start=0, y_start=0, x_end='setpoint_x', 
+        y_end='setpoint_y', line_width=2, source=source, 
+        name="setpoint"))
+    p.add_layout(Arrow(end=NormalHead(fill_color="navy", size=20), 
+        line_color="navy", x_start=0, y_start=0, x_end='position_x', 
+        y_end='position_y', line_width=4, source=source, 
+        name="position"))
+    p.toolbar.logo = None
+    p.toolbar_location = None   
+    return p
 
 
 def bkapp(doc):
@@ -77,100 +142,35 @@ def bkapp(doc):
     window = 30
     frame_rate = 5
 
-    p1 = figure(sizing_mode='stretch_width', height=200, title="Position & Setpoint")
-    p1.renderers.extend([
-        Span(location=-180, line_color='black', line_width=1),
-        Span(location=-90, line_color='black', line_width=1),
-        Span(location=0, line_color='black', line_width=1),
-        Span(location=90, line_color='black', line_width=1),
-        Span(location=180, line_color='black', line_width=1),
+    p_mechanics = make_line_chart(title="Mechanics", source=source, lines=[
+        dict(y='setpoint', color="firebrick", legend_label="setpoint"),
+        dict(y="position_deg", color="navy", legend_label="position"),
+        dict(y="velocity_deg", legend_label="velocity", y_range_name="velocity"),
+        dict(y="acceleration_deg", legend_label="acceleration", y_range_name="acceleration"),
+    ], spans=[-180, -90, 0, 90, 180])
+
+    p_voltage = make_line_chart(title="Voltage", source=source, lines=[
+        dict(y='voltage', line_width=4, legend_label='total'),
+        dict(y='p_voltage', legend_label='p'),
+        dict(y='i_voltage', legend_label='i'),
+        dict(y='d_voltage', legend_label='d'),
+        dict(y='f_voltage', legend_label='f'),
     ])
-    p1.line(x='ts', y='setpoint', color="firebrick", line_width=2, source=source, legend_label="setpoint")
-    p1.line(x='ts', y='position', color="navy", line_width=2, source=source, legend_label="position")
-    p1.legend.location = "left"
-    p1.toolbar.logo = None
-    p1.toolbar_location = None   
 
-    p2 = figure(sizing_mode='stretch_width', height=200, title="Velocity")
-    p2.renderers.append(Span(location=0, line_color='black', line_width=1))
-    p2.line(x='ts', y='velocity', color="green", line_width=2, source=source)
-    p2.toolbar.logo = None
-    p2.toolbar_location = None   
+    p_torque = make_line_chart(title="Torque", source=source, lines=[
+        dict(y='torque', line_width=4, legend_label='total'),
+        dict(y='motor_torque', legend_label='Motor'),
+        dict(y='torque_from_gravity', legend_label='Gravity'),
+    ])
 
-    p6 = figure(sizing_mode='stretch_width', height=200, title="Acceleration")
-    p6.renderers.append(Span(location=0, line_color='black', line_width=1))
-    p6.line(x='ts', y='acceleration', color="orange", line_width=2, source=source)
-    p6.toolbar.logo = None
-    p6.toolbar_location = None   
-
-    p4 = figure(sizing_mode='stretch_width', height=200, title="Voltage")
-    p4.renderers.append(Span(location=0, line_color='black', line_width=1))
-    p4.line(x='ts', y='voltage', color="red", line_width=4, source=source, legend_label="total")
-    p4.line(x='ts', y='p_voltage_p', color="magenta", line_width=2, source=source, legend_label="p")
-    p4.line(x='ts', y='i_voltage', color="orange", line_width=2, source=source, legend_label="i")
-    p4.line(x='ts', y='d_voltage', color="green", line_width=2, source=source, legend_label="d")
-    p4.line(x='ts', y='f_voltage', color="cyan", line_width=2, source=source, legend_label="f")
-    p4.legend.location = "left"
-    p4.toolbar.logo = None
-    p4.toolbar_location = None   
-
-    # p5 = figure(sizing_mode='stretch_width', height=200, title="PIDF")
-    # p5.renderers.append(Span(location=0, line_color='black', line_width=1))
-    # p5.line(x='ts', y='p', color="magenta", line_width=2, source=source, legend_label="p")
-    # p5.line(x='ts', y='i', color="yellow", line_width=2, source=source, legend_label="i")
-    # p5.line(x='ts', y='d', color="turquoise", line_width=2, source=source, legend_label="d")
-    # p5.line(x='ts', y='f', color="limegreen", line_width=2, source=source, legend_label="f")
-    # p5.legend.location = "left"
-    # p5.toolbar.logo = None
-    # p5.toolbar_location = None   
-
-    # p7 = figure(sizing_mode='stretch_width', height=200, title="ERR_ACC")
-    # p7.renderers.append(Span(location=0, line_color='black', line_width=1))
-    # p7.line(x='ts', y='err_acc', color="magenta", line_width=2, source=source, legend_label="err_acc")
-    # p7.legend.location = "left"
-    # p7.toolbar.logo = None
-    # p7.toolbar_location = None   
-
-    p3 = figure(width=300, height=300, x_range=Range1d(-1, 1), y_range=Range1d(-1, 1), 
-        tooltips=[("setpoint", "The direction we want the arm to point"),
-            ("position", "The robot's arm")])
-    p3.axis.visible = False
-    p3.grid.visible = False
-    p3.circle(x=[0], y=[0], radius=1, color='lightgrey')
-    for angle in range(-180, 180, 30):        
-        angle_rad = angle * math.pi / 180
-        p3.segment(0, 0, math.cos(angle_rad), math.sin(angle_rad), color="grey", 
-            line_width=2 if angle % 90 == 0 else 0.5)
-        p3.text(x=math.cos(angle_rad) * 0.9, y=math.sin(angle_rad) * 0.9,
-            text = value(str(angle) + "º"),
-            text_align="center",
-            text_baseline="center",
-            #text_font_size=7,
-            angle=angle_rad - math.pi/2,
-            text_color='grey',
-        )
-    #p3.segment(0, 0, 'setpoint_x', 'setpoint_y', color="firebrick", line_width=2, source=animation_source)
-    #p3.segment(0, 0, 'position_x', 'position_y', color="navy", line_width=4, source=animation_source)
-    p3.add_layout(Arrow(end=NormalHead(fill_color="firebrick", size=10), 
-        line_color="firebrick", x_start=0, y_start=0, x_end='setpoint_x', 
-        y_end='setpoint_y', line_width=2, source=animation_source, 
-        name="setpoint"))
-    p3.add_layout(Arrow(end=NormalHead(fill_color="navy", size=20), 
-        line_color="navy", x_start=0, y_start=0, x_end='position_x', 
-        y_end='position_y', line_width=4, source=animation_source, 
-        name="position"))
-    p3.toolbar.logo = None
-    p3.toolbar_location = None   
-
+    p_animation = make_animation_chart(animation_source)
 
     reset_button = Button(label="Reset Arm", sizing_mode="stretch_width")
-    def reset():
-        process.reset()
-    reset_button.on_click(reset)
+    reset_button.on_click(lambda: process.reset())
 
     reflect_button = Button(label="Reflect Setpoint", sizing_mode="stretch_width")
     def reflect():
-        controls['setpoint'].value = input_modulus(180 - controls['setpoint'].value, -180, 180)
+        controls['setpoint'].value = radians_to_degrees(input_modulus(math.pi - controls['setpoint'].value, -math.pi, math.pi))
     reflect_button.on_click(reflect)
 
     #@linear()
@@ -185,13 +185,11 @@ def bkapp(doc):
 
 
     def update_animation(setpoint, position):
-        setpoint_rad = setpoint * math.pi / 180
-        position_rad = position * math.pi / 180
         animation_data = dict(
-            setpoint_x=[math.cos(setpoint_rad)],
-            setpoint_y=[math.sin(setpoint_rad)],
-            position_x=[math.cos(position_rad)],
-            position_y=[math.sin(position_rad)]
+            setpoint_x=[math.cos(setpoint)],
+            setpoint_y=[math.sin(setpoint)],
+            position_x=[math.cos(position)],
+            position_y=[math.sin(position)]
         )        
         animation_source.stream(animation_data, 1)
 
@@ -211,10 +209,10 @@ def bkapp(doc):
             column(
                 row(
                     controls_column, 
-                    column(p3, reset_button, reflect_button, sizing_mode="fixed"), 
+                    column(p_animation, reset_button, reflect_button, sizing_mode="fixed"), 
                     sizing_mode="stretch_width"
                 ), 
-                p1, p2, p6, p4, sizing_mode="stretch_both"))
+                p_mechanics, p_voltage, p_torque, sizing_mode="stretch_both"))
 
     # Add a periodic callback to be run every 500 milliseconds
     doc.add_periodic_callback(update_data, 1000.0 / update_frequency)

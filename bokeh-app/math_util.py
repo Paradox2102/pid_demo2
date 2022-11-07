@@ -24,3 +24,11 @@ def apply_deadband(value, deadband):
             return (value + deadband) / (1.0 - deadband)
     else:
         return 0.0
+
+
+def radians_to_degrees(rad):
+    return rad * 180 / math.pi
+
+
+def degrees_to_radians(deg):
+    return deg * math.pi / 180
