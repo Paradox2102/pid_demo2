@@ -76,6 +76,7 @@ def make_line_chart(title, source, lines, spans=[0]):
         for y in spans])
     if len(lines) > 1:
         p.legend.location = "left"
+    
     p.extra_y_ranges={ 
         y_range: DataRange1d(renderers=[
             renderer for line, renderer in zip(lines, p.renderers) 
@@ -89,7 +90,17 @@ def make_line_chart(title, source, lines, spans=[0]):
     p.toolbar.logo = None
     p.toolbar_location = None   
     for y_range in y_ranges:
-        p.add_layout(LinearAxis(y_range_name=y_range, axis_label=y_range), "right")
+        if 1== len(p.extra_y_ranges[y_range].renderers):
+            color = p.extra_y_ranges[y_range].renderers[0].glyph.line_color
+            p.add_layout(LinearAxis(y_range_name=y_range, axis_label=y_range,
+                axis_label_text_color=color,
+                axis_line_color=color,
+                major_label_text_color=color,
+                major_tick_line_color=color,
+                minor_tick_line_color=color), 
+                "right")
+        else:
+            p.add_layout(LinearAxis(y_range_name=y_range, axis_label=y_range), "right")
     return p
 
 
