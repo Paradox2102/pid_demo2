@@ -11,9 +11,9 @@ class Process:
         self.last_time = time()
         self.start = time()
         motor = Falcon500()
-        motor = Gearbox(motor, 20)
+        gearbox = Gearbox(motor, 20)
         bearing = Bearing(cof=0.05, radius=0.16)
-        self.model = ModelArm(mass=0.1, length=1.0, motor=motor, bearing=bearing) 
+        self.model = ModelArm(mass=0.1, length=1.0, motor=gearbox, bearing=bearing) 
         self.f = f
         self.output = 0
         self.pid = PID()
@@ -42,14 +42,16 @@ class Process:
         assert set(result.keys()) == set(self.columns), (sorted(result.keys()), sorted(self.columns))
         return result
 
-    def reset(self):
-        self.position = -math.pi/2.0
+    def reset(self, position=-math.pi/2.0):
+        self.position = position
         self.velocity = 0
         self.pid.reset()
         self.pid.calculate(measurement=self.position, dt=None)
 
     def set_f(self, value):
         self.f = value
+
+    
 
     @property
     def columns(self):
