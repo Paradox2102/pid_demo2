@@ -2,7 +2,7 @@ import math
 
 from math_util import clamp, radians_to_degrees
 from time import time
-from motor import Motor, Gearbox, Falcon500
+from motor import Motor, Gearbox, Falcon500, Bearing
 from pid import PID
 from model import ModelArm
 
@@ -12,7 +12,8 @@ class Process:
         self.start = time()
         motor = Falcon500()
         motor = Gearbox(motor, 20)
-        self.model = ModelArm(mass=0.1, length=1.0, motor=motor) 
+        bearing = Bearing(cof=0.05, radius=0.16)
+        self.model = ModelArm(mass=0.1, length=1.0, motor=motor, bearing=bearing) 
         self.f = f
         self.output = 0
         self.pid = PID()

@@ -1,11 +1,13 @@
+from curses import def_prog_mode
 from logging import NullHandler
 from math_util import *
+from constants import g
 
 def rpm_to_radians_per_second(rpm):
     return rpm * 2 * math.pi / 60
 
 class Motor:
-    def __init__(self, voltage, name=None, stall_torque=None, free_speed=None):
+    def __init__(self, voltage, name=None, stall_torque=None, free_speed=None, stall_current=None, free_current=None):
         self.voltage = voltage
         self._name = name if name is not None else "some motor"
         self._stall_torque = stall_torque
@@ -29,8 +31,13 @@ class Motor:
         torque = math.copysign(torque, voltage)            
         return torque
 
+    @property
     def name(self):
         return self._name
+
+    @classmethod
+    def get_by_name(cls, name):
+        return cls.motors[name]
 
 
 class Falcon500(Motor):
@@ -53,6 +60,92 @@ class Falcon500(Motor):
     # TODO: Calculate current, temperature
 
 
+class CIM(Motor):
+    def __init__(self):
+        super().__init__(name="VEX CIM", voltage=12,
+            free_speed=rpm_to_radians_per_second(5310),
+            free_current=1.5,
+            stall_torque=2.42,
+            stall_current=133)
+
+
+class MiniCIM(Motor):
+    def __init__(self):
+        super().__init__(name="VEX Mini CIM", voltage=12,
+            free_speed=rpm_to_radians_per_second(5840),
+            free_current=13,
+            stall_torque=1.41,
+            stall_current=89)
+
+
+class BAG(Motor):
+    def __init__(self):
+        super().__init__(name="VEX BAG", voltage=12,
+            free_speed=rpm_to_radians_per_second(13180),
+            free_current=1.8,
+            stall_torque=0.43,
+            stall_current=53)
+
+
+class VEX775Pro(Motor):
+    def __init__(self):
+        super().__init__(name="VEX 775 pro", voltage=12,
+            free_speed=rpm_to_radians_per_second(18730),
+            free_current=0.7,
+            stall_torque=0.71,
+            stall_current=134)
+
+
+class RS775_125(Motor):
+    def __init__(self):
+        super().__init__(name="Andymark RS 775-125", voltage=12,
+            free_speed=rpm_to_radians_per_second(5800),
+            free_current=1.6,
+            stall_torque=0.28,
+            stall_current=18)
+
+
+class AM_9015(Motor):
+    def __init__(self):
+        super().__init__(name="Andymark 9015", voltage=12,
+            free_speed=rpm_to_radians_per_second(14270),
+            free_current=3.7,
+            stall_torque=0.36,
+            stall_current=71)
+
+
+class RS550(Motor):
+    def __init__(self):
+        super().__init__(name="RS550", voltage=12,
+            free_speed=rpm_to_radians_per_second(19000),
+            free_current=0.4,
+            stall_torque=0.38,
+            stall_current=84)
+
+
+class BAG(Motor):
+    def __init__(self):
+        super().__init__(name="VEX BAG", voltage=12,
+            free_speed=rpm_to_radians_per_second(13180),
+            free_current=1.8,
+            stall_torque=0.43,
+            stall_current=53)
+
+
+class NEO550(Motor):
+    def __init__(self):
+        super().__init__(name="REV NEO 550", voltage=12,
+            free_speed=rpm_to_radians_per_second(11000),
+            free_current=1.4,
+            stall_torque=0.97,
+            stall_current=100)
+
+
+
+Motor.motors = { motor.name: motor for motor in 
+    [ motor() for motor in [ Falcon500, CIM, MiniCIM, BAG, VEX775Pro, RS775_125, AM_9015, RS550, NEO550 ] ] }
+
+
 class Gearbox:
     def __init__(self, motor, ratio=1, n_motors=1):
         self.motor = motor
@@ -68,3 +161,18 @@ class Gearbox:
         
     def set_n_motors(self, value):
         self.n_motors = value
+
+    def set_motor(self, value):
+        self.motor = value
+
+
+class Bearing:
+    def __init__(self, cof, radius):
+        self.cof = cof
+        self.radius = radius
+
+    def friction(self, mass):
+        return self.cof * self.radius * mass * g
+
+    def set_cof(self, value):
+        self.cof = value

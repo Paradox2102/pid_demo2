@@ -8,7 +8,7 @@ from collections import defaultdict
 import itertools
 
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis
+from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis, NumericInput, Spinner, Select
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from bokeh.io import show, output_notebook
@@ -20,7 +20,7 @@ from bokeh.palettes import Category10_10 as palette
 
 from process import Process
 from math_util import input_modulus, radians_to_degrees, degrees_to_radians
-
+from motor import Motor
 
 
 def get_empty_data(process, controls):
@@ -47,19 +47,31 @@ def make_controls():
         d=Slider(start=0., end=0.2, value=0., step=0.001, title="d", sizing_mode="stretch_width", format='0.000'),
         izone=Slider(start=0., end=90, value=20., step=5, title="izone", sizing_mode="stretch_width"),
         setpoint=Slider(start=-180., end=180, value=0., title="setpoint", sizing_mode="stretch_width"),
-        ratio=Slider(start=1, end=100, value=10, title="gear ratio", sizing_mode="stretch_width"),
+        ratio=Spinner(low=1, high=100, value=10, title="gear ratio", sizing_mode="stretch_width"),
+        mass=NumericInput(low=0.1, high=100, value=1, mode='float', title="arm mass", sizing_mode="stretch_width"),
+        length=NumericInput(low=0.1, high=1, value=1, mode='float', title="arm length", sizing_mode="stretch_width"),
+        cof=NumericInput(low=0, high=1, value=0.05, mode='float', title="coefficient of friction", sizing_mode="stretch_width"), 
+        n_motors=Spinner(low=1, high=3, value=1, title="number of motors", sizing_mode="stretch_width"),   
+        motor=Select(options=list(Motor.motors.keys()), title="motor", sizing_mode="stretch_width"),
     )
 
 def connect_controls(process, controls):
-    controls['p'].on_change("value", lambda attr, old, new: process.pid.set_p(new))
-    controls['i'].on_change("value", lambda attr, old, new: process.pid.set_i(new))
-    controls['d'].on_change("value", lambda attr, old, new: process.pid.set_d(new))
+    # P, I, and D are per-degree, and we want them to be per-radian
+    controls['p'].on_change("value", lambda attr, old, new: process.pid.set_p(radians_to_degrees(new)))
+    controls['i'].on_change("value", lambda attr, old, new: process.pid.set_i(radians_to_degrees(new)))
+    controls['d'].on_change("value", lambda attr, old, new: process.pid.set_d(radians_to_degrees(new)))
     controls['f'].on_change("value", lambda attr, old, new: process.set_f(new))
-    controls['izone'].on_change("value", lambda attr, old, new: process.pid.set_izone(new))
-    controls['setpoint'].on_change("value", lambda attr, old, new: degrees_to_radians(process.pid.set_setpoint(new)))
+    controls['izone'].on_change("value", lambda attr, old, new: process.pid.set_izone(degrees_to_radians(new)))
+    controls['setpoint'].on_change("value", lambda attr, old, new: process.pid.set_setpoint(degrees_to_radians(new)))
     controls['ratio'].on_change("value", lambda attr, old, new: process.model.motor.set_ratio(new))
+    controls['mass'].on_change("value", lambda attr, old, new: process.model.set_mass(new))
+    controls['length'].on_change("value", lambda attr, old, new: process.model.set_mass(new))
+    controls['cof'].on_change("value", lambda attr, old, new: process.model.bearing.set_cof(new))
+    controls['n_motors'].on_change("value", lambda attr, old, new: process.model.motor.set_n_motors(new))
+    controls['motor'].on_change("value", lambda attr, old, new: process.model.motor.set_motor(Motor.get_by_name(new)))
+    
 
-colors = iter(palette)
+colors = iter(itertools.cycle(palette))
 
 def make_line_chart(title, source, lines, spans=[0]):
     lines = [ dict(y=line) if type(line) == str else line for line in lines ]
@@ -169,9 +181,10 @@ def bkapp(doc):
     ])
 
     p_torque = make_line_chart(title="Torque", source=source, lines=[
-        dict(y='torque', line_width=4, legend_label='total'),
+        dict(y='torque', line_width=4, legend_label='Total'),
         dict(y='motor_torque', legend_label='Motor'),
         dict(y='torque_from_gravity', legend_label='Gravity'),
+        dict(y='bearing_friction', legend_label='Friction'),
     ])
 
     p_animation = make_animation_chart(animation_source)
@@ -181,7 +194,7 @@ def bkapp(doc):
 
     reflect_button = Button(label="Reflect Setpoint", sizing_mode="stretch_width")
     def reflect():
-        controls['setpoint'].value = radians_to_degrees(input_modulus(math.pi - controls['setpoint'].value, -math.pi, math.pi))
+        controls['setpoint'].value = input_modulus(180 - controls['setpoint'].value, -180, 180)
     reflect_button.on_click(reflect)
 
     #@linear()
@@ -196,9 +209,10 @@ def bkapp(doc):
 
 
     def update_animation(setpoint, position):
+        setpoint_rad = degrees_to_radians(setpoint)
         animation_data = dict(
-            setpoint_x=[math.cos(setpoint)],
-            setpoint_y=[math.sin(setpoint)],
+            setpoint_x=[math.cos(setpoint_rad)],
+            setpoint_y=[math.sin(setpoint_rad)],
             position_x=[math.cos(position)],
             position_y=[math.sin(position)]
         )        
@@ -211,10 +225,12 @@ def bkapp(doc):
             source.stream(data, int(update_frequency*window))
             update_animation(data['setpoint'][-1], data['position'][-1])
             data = get_empty_data(process, controls)
-        
+
+    model_controls = row(*[controls[x] for x in ['motor', 'ratio', 'n_motors', 'cof', 'mass', 'length']],   
+        sizing_mode="stretch_width")       
     controls_column = column(*(row(
         controls[x], HelpButton(tooltip=Tooltip(content=control_help[x], position='left')), sizing_mode="stretch_width")
-        for x in ['f', 'p', 'i', 'izone', 'd', 'setpoint', 'ratio']), sizing_mode="stretch_width")
+        for x in ['f', 'p', 'i', 'izone', 'd', 'setpoint']), model_controls, sizing_mode="stretch_width")
 
     doc.add_root(
             column(
