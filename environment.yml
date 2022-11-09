@@ -1,6 +1,6 @@
 dependencies:
   - bokeh
-  - pip
   - numpy
+  - pip
   - pip:
     - jupyter-server-proxy
