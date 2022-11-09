@@ -192,8 +192,9 @@ def bkapp(doc):
     ])
 
     p_torque = make_line_chart(title="Torque", source=source, lines=[
-        dict(y='torque', line_width=4, legend_label='Total'),
+        dict(y='torque', line_width=4, legend_label='Nett'),
         dict(y='motor_torque', legend_label='Motor'),
+        dict(y='gearbox_torque', legend_label='Gearbox'),
         dict(y='torque_from_gravity', legend_label='Gravity'),
         dict(y='bearing_friction', legend_label='Friction'),
     ])

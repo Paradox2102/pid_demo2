@@ -154,7 +154,12 @@ class Gearbox:
 
     def torque(self, velocity, output):
         torque = self.motor.torque(velocity / self.ratio, output)
-        return torque * self.ratio * self.n_motors * self.efficiency
+        torque = torque * self.ratio * self.n_motors
+        return dict(
+            motor_torque=torque,
+            gearbox_torque=torque * self.efficiency,
+            gearbox_torque_loss=torque * (1 - self.efficiency),
+        )
 
     def set_ratio(self, value):
         self.ratio = value
@@ -167,6 +172,10 @@ class Gearbox:
 
     def set_efficiency(self, value):
         self.efficiency = value
+
+    @property
+    def columns(self):
+        return ['motor_torque', 'gearbox_torque', 'gearbox_torque_loss']
 
 
 class Bearing:
