@@ -1,4 +1,3 @@
-from distutils.file_util import copy_file
 import math
 from math_util import *
 from constants import g

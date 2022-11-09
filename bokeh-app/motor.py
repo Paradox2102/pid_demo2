@@ -1,5 +1,3 @@
-from curses import def_prog_mode
-from logging import NullHandler
 from math_util import *
 from constants import g
 
