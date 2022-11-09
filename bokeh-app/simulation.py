@@ -15,6 +15,8 @@ def is_settled(errors, thumb, steady_state_interval):
         min_error = min(error, min_error)
         if max_error - min_error > steady_state_interval:
             return (False, j + 1)
+    #print(dict(max_error=max_error, min_error=min_error, thumb=thumb, steady_state_interval=steady_state_interval,
+    #    len=len(errors)-thumb, errors=len(errors)))
     return (True, thumb)
 
 
@@ -28,10 +30,10 @@ def simulate(process_init, initial_position=None):
     overshoot = 0
     overshoot_index = None
     dt = 1.0 / update_frequency
-    scan_window = window * update_frequency
+    scan_window = window * update_frequency * 2
     times = itertools.count(start=dt, step=dt)
     thumb = 0
-    steady_state_interval = abs(initial_error) * 0.2 * 2 # 2% either way
+    steady_state_interval = abs(initial_error) * 0.02 * 2 # 2% either way
     errors = [ initial_error ]
     for i, time in enumerate(times, start=1):
         result = process.update(now=time)
@@ -41,9 +43,6 @@ def simulate(process_init, initial_position=None):
         if abs(error) > abs(initial_error) or time > window * 100:
             return dict(
                 settled=False,
-                steady_state_error=None,
-                overshoot_fraction=None,
-                settling_time=None,
                 initial_position=initial_position,
                 initial_position_deg=radians_to_degrees(initial_position),
                 final_time=time,

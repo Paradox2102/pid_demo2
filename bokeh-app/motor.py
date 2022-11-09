@@ -154,8 +154,8 @@ class Gearbox:
         self.n_motors = n_motors
 
     def torque(self, velocity, output):
-        torque = self.motor.torque(velocity * self.ratio, output)
-        return torque / self.ratio * self.n_motors
+        torque = self.motor.torque(velocity / self.ratio, output)
+        return torque * self.ratio * self.n_motors
 
     def set_ratio(self, value):
         self.ratio = value

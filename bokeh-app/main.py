@@ -49,7 +49,7 @@ def make_controls():
         d=Slider(start=0., end=0.2, value=0., step=0.001, title="d", sizing_mode="stretch_width", format='0.000'),
         izone=Slider(start=0., end=90, value=20., step=5, title="izone", sizing_mode="stretch_width"),
         setpoint=Slider(start=-180., end=180, value=0., title="setpoint", sizing_mode="stretch_width"),
-        ratio=Spinner(low=1, high=100, value=10, title="gear ratio", sizing_mode="stretch_width"),
+        ratio=Spinner(low=1, high=1000, value=1, title="gear ratio", sizing_mode="stretch_width"),
         mass=NumericInput(low=0.1, high=100, value=1, mode='float', title="arm mass (kg)", sizing_mode="stretch_width"),
         length=NumericInput(low=0.1, high=1, value=1, mode='float', title="arm length (m)", sizing_mode="stretch_width"),
         cof=NumericInput(low=0, high=1, value=0.05, mode='float', title="coefficient of friction", sizing_mode="stretch_width"), 
@@ -219,7 +219,7 @@ def bkapp(doc):
             process_init=lambda process: trigger_control_callbacks(process, controls),
             initial_position=-math.pi/2,
         )
-        print(result)
+        #print(result)
         if result['settled']:
             text = f"Overshoot={result['overshoot']:.1%}, 2% Settling Time={result['settling_time']:.2f}s, Steady State Error={result['steady_state_error']:.1%}" 
         else:
