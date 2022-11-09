@@ -1,8 +1,7 @@
 import random
 import math
 import itertools
-
-import numpy as np
+from statistics import mean
 
 from process import Process
 from constants import update_frequency, window
@@ -60,7 +59,7 @@ def simulate(process_init, initial_position=None):
             if settled:
                 return dict(
                     settled=True,
-                    steady_state_error=abs(np.mean(errors[thumb:-1]) / initial_error),
+                    steady_state_error=abs(mean(errors[thumb:-1]) / initial_error),
                     overshoot=abs(overshoot / initial_error),
                     settling_time=thumb * dt,
                     initial_position=initial_position,

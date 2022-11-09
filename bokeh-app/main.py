@@ -1,8 +1,4 @@
 import math
-from time import time, sleep
-from typing import NamedTuple
-import threading
-from collections import defaultdict
 import itertools
 
 from bokeh.layouts import column, row
@@ -278,6 +274,4 @@ def bkapp(doc):
     doc.add_periodic_callback(update_dashboard, 1000.0 / frame_rate)
     doc.title = "PID demo"
 
-#start_profiling()
 bkapp(curdoc())
-#atexit.register(stop_profiling)
