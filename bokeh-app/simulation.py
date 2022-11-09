@@ -39,7 +39,7 @@ def simulate(process_init, initial_position=None):
         position = result['position']
         error = process.pid._calculate_difference(process.pid.setpoint - position)
         #print(dict(i=i, time=time, position=position, error=error))
-        if abs(error) > abs(initial_error) or time > window * 100:
+        if abs(error) > abs(initial_error) or time > window * 100 or initial_error == 0:
             return dict(
                 settled=False,
                 initial_position=initial_position,
