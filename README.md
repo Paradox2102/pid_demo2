@@ -11,7 +11,7 @@ While I have tried to make this a reasonable physics simualtor, you should not u
 
 ## Quickstart
 
-1. Click on the badge below.  Open in a new window so you can keep reading these instructions.  It may take few minutes to start up, so do it now.
+1. Click on the "Launch Binder" badge below.  Open in a new window so you can keep reading these instructions.  It may take few minutes to start up, so do it now.
 1. Select a BAG motor, with a 150 gear ratio and a mass of 5kg.
 1. Increase `f` until the arm is approaching horizontal but not spinning.  
    * Use the "Reset Arm" button to restart if things start going too fast. 
