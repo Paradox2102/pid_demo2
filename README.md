@@ -9,4 +9,16 @@ The torque from gravity is at a maximum, so pushing up too hard is unstable.  Fe
 
 While I have tried to make this a reasonable physics simualtor, you should not use it to select gear ratios.
 
+## Quickstart
+
+1. Click on the badge below.  It may take few minutes to start up.
+2. Select a BAG motor, with a 150 gear ratio and a mass of 5kg.
+3. Increase `f` until the arm is approaching horizontal but not spinning.  Use the "Reset Arm" button to restart if things are going too fast.
+4. Add a little bit of `d` to slow things down.
+5. Add some `p` to pull it towards the setpoint.
+6. If it's not quite getting there, add some `i`.
+7. If your residual error is more than 20°, you may need to increase the `izone`.
+8. Use the "Reflect Setpoint" button to move the arm from side to side.  Is it getting the to new setpoint quickly and stopping in time? 
+9. Click "Analyze" to get a report on how well your settings work in terms of overshoot, settling time, and steady state error.
+
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Paradox2102/pid_demo2/main?urlpath=%2Fproxy%2F5006%2Fbokeh-app)
