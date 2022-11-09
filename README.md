@@ -11,19 +11,20 @@ While I have tried to make this a reasonable physics simualtor, you should not u
 
 ## Quickstart
 
-1. Click on the badge below.  It may take few minutes to start up.
-2. Select a BAG motor, with a 150 gear ratio and a mass of 5kg.
-3. Increase `f` until the arm is approaching horizontal but not spinning.  
-   * Use the "Reset Arm" button to restart if things are going too fast. 
+1. Click on the badge below.  Open in a new window so you can keep reading these instructions.  It may take few minutes to start up, so do it now.
+1. Select a BAG motor, with a 150 gear ratio and a mass of 5kg.
+1. Increase `f` until the arm is approaching horizontal but not spinning.  
+   * Use the "Reset Arm" button to restart if things start going too fast. 
    * Add a little bit of `d` to slow things down.
-4. Add some `p` to pull it towards the setpoint.
-5. If it's not quite getting there, add some `i`.
+1. Add some `p` to pull it towards the setpoint, but avoid too much overshoot.
+1. If it's not quite getting there, add some `i`.
     * If your residual error is more than 20°, you may need to increase the `izone`.
-8. Use the "Reflect Setpoint" button to move the arm from side to side.  Is it getting the to new setpoint quickly and stopping in time? 
-   *  Return the `d` to make the hard stop in time.
-7. Once you have the arm horizontal and steady, retune the `f` to match the total voltage.
-9. Click "Analyze" to get a report on how well your settings work in terms of overshoot, settling time, and steady state error.
-10. Try doubling the mass of the arm and see if your settings still work.
-11. Will the same settings work to bring the arm to a different angle, like straight up?
+1. Use the "Reflect Setpoint" button to move the arm from side to side.  Is it getting the to new setpoint quickly and stopping in time? 
+   *  Tune the `d` to make the arm stop in time.
+1. Once you have the arm horizontal and steady, gently tune the `f` to match the total voltage.
+1. Click "Analyze" to get a report on how well your settings work in terms of overshoot, settling time, and steady state error.
+1. Try doubling the mass of the arm and see if your settings still work.
+1. Will the same settings work to bring the arm to a different angle, like straight up?
+1. Did we pick the best gear ratio?
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Paradox2102/pid_demo2/main?urlpath=%2Fproxy%2F5006%2Fbokeh-app)
