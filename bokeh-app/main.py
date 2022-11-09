@@ -8,7 +8,7 @@ from collections import defaultdict
 import itertools
 
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis, NumericInput, Spinner, Select
+from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis, NumericInput, Spinner, Select, Paragraph
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from bokeh.io import show, output_notebook
@@ -21,6 +21,8 @@ from bokeh.palettes import Category10_10 as palette
 from process import Process
 from math_util import input_modulus, radians_to_degrees, degrees_to_radians
 from motor import Motor
+from constants import frame_rate, window, update_frequency
+from simulation import simulate
 
 
 def get_empty_data(process, controls):
@@ -176,9 +178,6 @@ def bkapp(doc):
         position_x=[],
         position_y=[],
     ))
-    update_frequency = 50
-    window = 30
-    frame_rate = 5
 
     p_mechanics = make_line_chart(title="Mechanics", source=source, lines=[
         dict(y='setpoint', color="firebrick", legend_label="setpoint"),
@@ -211,6 +210,23 @@ def bkapp(doc):
     def reflect():
         controls['setpoint'].value = input_modulus(180 - controls['setpoint'].value, -180, 180)
     reflect_button.on_click(reflect)
+
+    analysis_widget = Paragraph()
+    analyze_button = Button(label="Analyze", sizing_mode="stretch_width")
+    def analyze():
+        analysis_widget.text="Simulating...."
+        result = simulate(
+            process_init=lambda process: trigger_control_callbacks(process, controls),
+            initial_position=-math.pi/2,
+        )
+        print(result)
+        if result['settled']:
+            text = f"Overshoot={result['overshoot']:.1%}, 2% Settling Time={result['settling_time']:.2f}s, Steady State Error={result['steady_state_error']:.1%}" 
+        else:
+            text = "Process did not settle"
+        #text = text + " :- " + str(result) # debug only
+        analysis_widget.text = text
+    analyze_button.on_click(analyze)
 
     #@linear()
     def update_data():
@@ -245,13 +261,14 @@ def bkapp(doc):
         sizing_mode="stretch_width")       
     controls_column = column(*(row(
         controls[x], HelpButton(tooltip=Tooltip(content=control_help[x], position='left')), sizing_mode="stretch_width")
-        for x in ['f', 'p', 'i', 'izone', 'd', 'setpoint']), model_controls, sizing_mode="stretch_width")
+        for x in ['f', 'p', 'i', 'izone', 'd', 'setpoint']), 
+        model_controls, analysis_widget, sizing_mode="stretch_width")
 
     doc.add_root(
             column(
                 row(
                     controls_column, 
-                    column(p_animation, reset_button, reflect_button, sizing_mode="fixed"), 
+                    column(p_animation, reset_button, reflect_button, analyze_button, sizing_mode="fixed"), 
                     sizing_mode="stretch_width"
                 ), 
                 p_mechanics, p_voltage, p_torque, sizing_mode="stretch_both"))

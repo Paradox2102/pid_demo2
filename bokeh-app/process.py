@@ -7,9 +7,11 @@ from pid import PID
 from model import ModelArm
 
 class Process:
-    def __init__(self, f=0):
-        self.last_time = time()
-        self.start = time()
+    def __init__(self, f=0, now=None):
+        if now is None:
+            now = time()
+        self.last_time = now
+        self.start = now
         motor = Falcon500()
         gearbox = Gearbox(motor, 20)
         bearing = Bearing(cof=0.05, radius=0.16)
@@ -21,8 +23,9 @@ class Process:
         self.voltage = 12
         self.reset()
 
-    def update(self):
-        now = time()
+    def update(self, now=None):
+        if now is None:
+            now = time()
         dt = now - self.last_time
         self.last_time = now
         result = self.model.calculate(position=self.position, velocity=self.velocity, dt=dt, output=self.output)

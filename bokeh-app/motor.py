@@ -28,7 +28,8 @@ class Motor:
             torque = stall_torque * (1 - velocity * math.copysign(1.0, voltage) / free_speed)
         else:
             torque = stall_torque
-        torque = math.copysign(torque, voltage)            
+        torque = math.copysign(torque, voltage)  
+        #print(dict(name=self.name, voltage=voltage, velocity=velocity, output=output, stall_torque=stall_torque, free_speed=free_speed, torque=torque))          
         return torque
 
     @property
