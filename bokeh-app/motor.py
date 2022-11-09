@@ -148,14 +148,15 @@ Motor.motors = { motor.name: motor for motor in
 
 
 class Gearbox:
-    def __init__(self, motor, ratio=1, n_motors=1):
+    def __init__(self, motor, ratio=1, n_motors=1, efficiency=1.0):
         self.motor = motor
         self.ratio = ratio
         self.n_motors = n_motors
+        self.efficiency = efficiency
 
     def torque(self, velocity, output):
         torque = self.motor.torque(velocity / self.ratio, output)
-        return torque * self.ratio * self.n_motors
+        return torque * self.ratio * self.n_motors * self.efficiency
 
     def set_ratio(self, value):
         self.ratio = value
@@ -165,6 +166,9 @@ class Gearbox:
 
     def set_motor(self, value):
         self.motor = value
+
+    def set_efficiency(self, value):
+        self.efficiency = value
 
 
 class Bearing:

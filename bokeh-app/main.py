@@ -53,6 +53,7 @@ def make_controls():
         mass=NumericInput(low=0.1, high=100, value=1, mode='float', title="arm mass (kg)", sizing_mode="stretch_width"),
         length=NumericInput(low=0.1, high=1, value=1, mode='float', title="arm length (m)", sizing_mode="stretch_width"),
         cof=NumericInput(low=0, high=1, value=0.05, mode='float', title="coefficient of friction", sizing_mode="stretch_width"), 
+        efficiency=NumericInput(low=0, high=1, value=0.85, mode='float', title="gearbox efficiency", sizing_mode="stretch_width"),
         motor=Select(options=list(Motor.motors.keys()), title="motor", sizing_mode="stretch_width",
             value=list(Motor.motors.keys())[0]),
         n_motors=Spinner(low=1, high=3, value=1, title="number of motors", sizing_mode="stretch_width"),   
@@ -70,6 +71,7 @@ control_callbacks = dict(
     mass=lambda process, value: process.model.set_mass(value),
     length=lambda process, value: process.model.set_length(value),
     cof=lambda process, value: process.model.bearing.set_cof(value),
+    efficiency=lambda process, value: process.model.motor.set_efficiency(value),
     motor=lambda process, value: process.model.motor.set_motor(Motor.get_by_name(value)),
     n_motors=lambda process, value: process.model.motor.set_n_motors(value),
 )
@@ -257,7 +259,7 @@ def bkapp(doc):
             update_animation(data['setpoint'][-1], data['position'][-1])
             data = get_empty_data(process, controls)
 
-    model_controls = row(*[controls[x] for x in ['motor', 'ratio', 'n_motors', 'cof', 'mass', 'length']],   
+    model_controls = row(*[controls[x] for x in ['motor', 'ratio', 'n_motors', 'cof', 'efficiency', 'mass', 'length']],   
         sizing_mode="stretch_width")       
     controls_column = column(*(row(
         controls[x], HelpButton(tooltip=Tooltip(content=control_help[x], position='left')), sizing_mode="stretch_width")
