@@ -1,6 +1,4 @@
 import math
-from multiprocessing.sharedctypes import Value
-
 from time import time, sleep
 from typing import NamedTuple
 import threading
