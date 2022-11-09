@@ -19,12 +19,19 @@ While I have tried to make this a reasonable physics simualtor, you should not u
 1. Add some `p` to pull it towards the setpoint, but avoid too much overshoot.
 1. If it's not quite getting there, add some `i`.
     * If your residual error is more than 20°, you may need to increase the `izone`.
-1. Use the "Reflect Setpoint" button to move the arm from side to side.  Is it getting the to new setpoint quickly and stopping in time? 
-   *  Tune the `d` to make the arm stop in time.
-1. Once you have the arm horizontal and steady, gently tune the `f` to match the total voltage.
+    * Try to add the minimum `i` you can get away with because this can also increase overshoot.
+1. Once you have the arm horizontal and steady, gently tune the `f` to match the total line on the voltage chart
+1. Use the "Reflect Setpoint" button to flip the arm from side to side.  Is it getting to the new setpoint quickly?  Is it stopping in time? 
+   * Tune the `d` to reduce overshoot without slowing things down.
 1. Click "Analyze" to get a report on how well your settings work in terms of overshoot, settling time, and steady state error.
+   * A little overshoot is usually acceptable, but keep it under 5%.
+   * Try to get your settling time down as low as possible.
+   * You want your steady state error to be zero, or close to it.   
 1. Try doubling the mass of the arm and see if your settings still work.
 1. Will the same settings work to bring the arm to a different angle, like straight up?
 1. Did we pick the best gear ratio?
+1. What if we used a different motor?
+
+![Screenshot of PID demo tool.  There are sliders for PIDF, IZone and Setpoint, and selectors for motor, gear ratio, number of motors, coefficient of friction, gearbox efficiency, arm mass, and arm length.  Charts show an animation of a swinging arm, mechanical properties, voltages, and torques.](images/screenshot.png)
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Paradox2102/pid_demo2/main?urlpath=%2Fproxy%2F5006%2Fbokeh-app)
