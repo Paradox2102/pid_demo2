@@ -32,7 +32,6 @@ control_help = dict(
     f="Feedforward",
     izone="Only apply the 'i' term if we're this close",
     setpoint="The target, where we're trying to get to",
-    ratio="The number of times the motors rotates when the arm rotates once",
 )
 
 def make_controls():
@@ -41,7 +40,7 @@ def make_controls():
         f=Slider(start=0., end=1, value=0., step=0.005, title="f", sizing_mode="stretch_width", format='0.000'),
         i=Slider(start=0., end=1, value=0., step=0.005, title="i", sizing_mode="stretch_width", format='0.000'),
         d=Slider(start=0., end=1, value=0., step=0.005, title="d", sizing_mode="stretch_width", format='0.000'),
-        izone=Slider(start=0., end=90, value=20., step=5, title="izone", sizing_mode="stretch_width"),
+        izone=Slider(start=0., end=90, value=20., step=1, title="izone", sizing_mode="stretch_width"),
         setpoint=Slider(start=-180., end=180, value=0., title="setpoint", sizing_mode="stretch_width"),
         ratio=Spinner(low=1, high=1000, value=1, title="gear ratio", sizing_mode="stretch_width"),
         mass=NumericInput(low=0.1, high=100, value=1, mode='float', title="arm mass (kg)", sizing_mode="stretch_width"),
@@ -70,6 +69,7 @@ control_callbacks = dict(
     n_motors=lambda process, value: process.model.motor.set_n_motors(value),
 )
 
+
 def connect_controls(process, controls):
     def wrapper(callback):
         return lambda attr, old, new: callback(process, new)
@@ -77,6 +77,7 @@ def connect_controls(process, controls):
     for control, callback in control_callbacks.items():
         controls[control].on_change("value", wrapper(callback))
     
+
 def trigger_control_callbacks(process, controls):
     assert set(controls.keys()) == set(control_callbacks.keys())
     for control, callback in control_callbacks.items():
@@ -197,6 +198,12 @@ def bkapp(doc):
         dict(y='bearing_friction', legend_label='Friction'),
     ])
 
+    p_pid = make_line_chart(title="PID internals", source=source, lines=[
+        dict(y='err', legend_label='error (radians)'),
+        dict(y='d_err', legend_label="error rate (radians/sec)", y_range_name="error rate"),
+        dict(y='err_acc', legend_label="accumulated error (radian-secs)", y_range_name='accumulated error')
+    ])
+
     p_animation = make_animation_chart(animation_source)
 
     reset_button = Button(label="Reset Arm", sizing_mode="stretch_width")
@@ -217,7 +224,7 @@ def bkapp(doc):
         )
         #print(result)
         if result['settled']:
-            text = f"Overshoot={result['overshoot']:.1%}, 2% Settling Time={result['settling_time']:.2f}s, Steady State Error={result['steady_state_error']:.1%}" 
+            text = f"Overshoot={result['overshoot']:.2%}, 2% Settling Time={result['settling_time']:.2f}s, Steady State Error={result['steady_state_error']:.2%}" 
         else:
             text = "Process did not settle"
         #text = text + " :- " + str(result) # debug only
@@ -267,7 +274,7 @@ def bkapp(doc):
                     column(p_animation, reset_button, reflect_button, analyze_button, sizing_mode="fixed"), 
                     sizing_mode="stretch_width"
                 ), 
-                p_mechanics, p_voltage, p_torque, sizing_mode="stretch_both"))
+                p_mechanics, p_voltage, p_torque, p_pid, sizing_mode="stretch_both"))
 
     # Add a periodic callback to be run every 500 milliseconds
     doc.add_periodic_callback(update_data, 1000.0 / update_frequency)
