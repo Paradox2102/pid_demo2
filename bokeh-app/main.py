@@ -37,10 +37,10 @@ control_help = dict(
 
 def make_controls():
     return dict(
-        p=Slider(start=0., end=0.1, value=0., step=0.001, title="p", sizing_mode="stretch_width", format='0.000'),
+        p=Slider(start=0., end=1, value=0., step=0.005, title="p", sizing_mode="stretch_width", format='0.000'),
         f=Slider(start=0., end=1, value=0., step=0.005, title="f", sizing_mode="stretch_width", format='0.000'),
-        i=Slider(start=0., end=0.1, value=0., step=0.001, title="i", sizing_mode="stretch_width", format='0.000'),
-        d=Slider(start=0., end=0.2, value=0., step=0.001, title="d", sizing_mode="stretch_width", format='0.000'),
+        i=Slider(start=0., end=1, value=0., step=0.005, title="i", sizing_mode="stretch_width", format='0.000'),
+        d=Slider(start=0., end=1, value=0., step=0.005, title="d", sizing_mode="stretch_width", format='0.000'),
         izone=Slider(start=0., end=90, value=20., step=5, title="izone", sizing_mode="stretch_width"),
         setpoint=Slider(start=-180., end=180, value=0., title="setpoint", sizing_mode="stretch_width"),
         ratio=Spinner(low=1, high=1000, value=1, title="gear ratio", sizing_mode="stretch_width"),
@@ -54,10 +54,10 @@ def make_controls():
     )
 
 control_callbacks = dict(
-    # P, I, and D are per-degree, and we want them to be per-radian
-    p=lambda process, value: process.pid.set_p(radians_to_degrees(value)),
-    i=lambda process, value: process.pid.set_i(radians_to_degrees(value)),
-    d=lambda process, value: process.pid.set_d(radians_to_degrees(value)),
+    # P, I, and D are all per-radian so can be passed on directly.
+    p=lambda process, value: process.pid.set_p(value),
+    i=lambda process, value: process.pid.set_i(value),
+    d=lambda process, value: process.pid.set_d(value),
     f=lambda process, value: process.set_f(value),
     izone=lambda process, value: process.pid.set_izone(degrees_to_radians(value)),
     setpoint=lambda process, value: process.pid.set_setpoint(degrees_to_radians(value)),
