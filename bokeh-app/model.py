@@ -21,8 +21,8 @@ class ModelArm(Model):
         bearing_friction = self.bearing.friction(self.mass) if self.bearing is not None else 0
         result['bearing_friction'] = -math.copysign(min(abs(torque), bearing_friction), velocity)
         result['torque'] = torque + result['bearing_friction']
-        result['acceleration'] = torque * self.inertia
-        result['velocity'] = (velocity + result['acceleration'] * dt)
+        result['acceleration'] = result['torque'] * self.inertia
+        result['velocity'] = velocity + result['acceleration'] * dt
         new_position = position + dt * (velocity + result['velocity'])/2 
         result['position'] = input_modulus(new_position, -math.pi, math.pi)
         result['position_deg'] = radians_to_degrees(result['position'] )
