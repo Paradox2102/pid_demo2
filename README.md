@@ -26,10 +26,10 @@ While I have tried to make this a reasonable physics simualtor, you should not u
 1. Use the "Reflect Setpoint" button to flip the arm from side to side.  Is it getting to the new setpoint quickly?  Is it stopping in time? 
    * Tune the `d` to reduce overshoot without slowing things down.
 1. Click "Analyze" to get a report on how well your settings work in terms of overshoot, settling time, and steady state error.
-   * A little overshoot is usually acceptable, but keep it under 2%.
+   * A little overshoot is usually acceptable, but keep it under 2%.  Think about having a stadium full of spectators watching your robot's arm wiggle back and forth.
    * Try to get your settling time down as low as possible.  Can you do it in less than a second?
    * You want your steady state error to be zero, or close to it.   What size of error is too small to affect gameplay?
-1. Try doubling the mass of the arm and see if your settings still work.
+1. Try doubling the mass of the arm (perhaps because you picked up a game piece) and see if your settings still work.
 1. Will the same settings work to bring the arm to a different angle, like straight up?
 1. Did we pick the best gear ratio?
 1. What if we used a different motor?
