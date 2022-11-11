@@ -2,7 +2,7 @@ import math
 import itertools
 
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis, NumericInput, Spinner, Select, Paragraph, DataTable, TableColumn
+from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis, NumericInput, Spinner, Select, Paragraph, DataTable, TableColumn, Div
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from bokeh.io import show, output_notebook
@@ -271,6 +271,8 @@ def bkapp(doc):
         for x in ['f', 'p', 'i', 'izone', 'd', 'setpoint']), 
         model_controls, analysis_widget, sizing_mode="stretch_width")
 
+    footer = Div(text="""For sourcecode and (some) documentation, see <a href="https://github.com/Paradox2102/pid_demo2">github.com/Paradox2102/pid_demo2</a>""")
+
     doc.add_root(
             column(
                 row(
@@ -278,7 +280,7 @@ def bkapp(doc):
                     column(p_animation, reset_button, reflect_button, analyze_button, sizing_mode="fixed"), 
                     sizing_mode="stretch_width"
                 ), 
-                p_mechanics, p_voltage, p_torque, p_pid, sizing_mode="stretch_both"))
+                p_mechanics, p_voltage, p_torque, p_pid, footer, sizing_mode="stretch_both"))
 
     # Add a periodic callback to be run every 500 milliseconds
     doc.add_periodic_callback(update_data, 1000.0 / update_frequency)
