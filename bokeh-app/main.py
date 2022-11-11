@@ -2,7 +2,7 @@ import math
 import itertools
 
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis, NumericInput, Spinner, Select, Paragraph
+from bokeh.models import ColumnDataSource, Slider, Button, Span, Arrow, NormalHead, Tooltip, HelpButton, HoverTool, LinearAxis, NumericInput, Spinner, Select, Paragraph, DataTable, TableColumn
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from bokeh.io import show, output_notebook
@@ -206,6 +206,9 @@ def bkapp(doc):
     ])
 
     p_animation = make_animation_chart(animation_source)
+
+    # p_table = DataTable(source=source,
+    #     columns=[TableColumn(field=x) for x in source.data.keys()], sizing_mode="stretch_width")
 
     reset_button = Button(label="Reset Arm", sizing_mode="stretch_width")
     reset_button.on_click(lambda: process.reset())
