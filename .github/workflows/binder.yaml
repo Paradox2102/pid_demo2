@@ -15,5 +15,6 @@ jobs:
       with:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        BINDER_CACHE: true
-        MYBINDERORG_TAG: main
+        #BINDER_CACHE: true
+        NO_PUSH: true
+        MYBINDERORG_TAG: ${{ github.event.ref }}
