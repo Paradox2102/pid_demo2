@@ -98,4 +98,4 @@ When the arm is stationary, the nett torque must be zero; neglecting friction th
 This shows what's going on inside the PID controller.
 * Error: The difference between the setpoint and position.  Shown in radians on scale at left.  This is periodic, so +π and -π are equivalent.
 * Error Rate: The difference between the current error and the last error divided by the timeslice.  An approximation of the derivative of the error.  Shown in radians per second on scale at right.  Note that this will often be opposed to the error term.
-* Accumulated error.  Sum of error terms multiplied by the timeslice.  Zeroed when outside izone.  An approximation of ther integral of the error.   Shown in radian-seconds on scale at right.  This will typically remain small, but will grown when everything else has settled down.
+* Accumulated error.  Sum of error terms multiplied by the timeslice.  Zeroed when outside izone.  An approximation of the integral of the error.   Shown in radian-seconds on scale at right.  This will typically remain small, but will grow when everything else has settled down.
